@@ -1,0 +1,163 @@
+plugins {
+  id "org.ajoberstar.grgit" version "3.0.0-rc.2"
+}
+ext {
+  dirs=["cloudwatch-log4j-appender","core-dsl","content-services","docstore","maildb", "nconn-v2","portal-sys","odd","cds","aws-utils" ,"docker-utils","nconn-legacy"]
+  tcServer = "http://build.nexstra.com:8111"
+  download="${tcServer}/guestAuth/repository/download"
+}
+apply plugin: 'java'
+
+//artifacts/docstore-lib/build/libs/docstore-lib-1.4.44
+repositories {
+  ivy {
+    ivyPattern      "${download}/[module]/[revision]/teamcity-ivy.xml"
+    artifactPattern "${download}/[module]/[revision]/[artifact](.[ext])"
+  }
+/*
+  maven {url "${download}/CloudwatchLog4j_BuildLib/.lastSuccessful/artifacts.zip!"}
+  maven{  url "${download}/CoreDsl_BuildLib/.lastSuccessful/artifacts.zip!"}
+ maven {  url "${download}/Docstore_BuildLib/.lastSuccessful/artifacts.zip!"}
+maven { url "${download}/Maildb_MailRouter/.lastSuccessful/artifacts.zip!"}
+maven { url "${download}/NconnV2_BuildLib/.lastSuccessful/artifacts.zip!"}
+    maven { url "${download}/Maildb_BuildLib/.lastSuccessful/artifacts.zip!"}
+*/
+    jcenter()
+}
+
+task appRun {
+  gradle.includedBuilds.each {
+    println(it.projectDir)
+    if( it.task(":appRun") != null)
+      dependsOn it.task(":appRun")
+  }}
+task appRunDebug {
+  gradle.includedBuilds.each {
+    println(it.projectDir)
+    if( it.task(":appRunDebug") != null)
+      dependsOn it.task(":appRunDebug")
+  }}
+task publish { 
+  gradle.includedBuilds.each {
+    println(it.projectDir)
+    if( it.task(":publish") != null)
+      dependsOn it.task(":publish")
+  }
+
+}
+
+import org.ajoberstar.grgit.Grgit
+def workOn( d ) {
+  return Grgit.open(dir: d ) ?: Grgit.clone( dir:d , url : "git@github.com:nexstra/${d}.git") 
+}
+def printStatus(s,n){
+   println("$n: added: ${s.added.size()} modified: ${s.modified.size()}, removed: ${s.removed.size()}")
+}
+def printAllStatus(d,s){
+     println("$d dirty: ${!s.clean}")
+     println("conflicts: ${s.conflicts.size()}") 
+     printStatus(s.staged,"staged")
+     printStatus(s.unstaged,"unstaged")
+}
+task appsInit {
+  doLast {
+     def clean =0
+     def dirty=0
+     dirs.each {
+        def d = "${projectDir}/../${it}"
+        def g = workOn(d)
+        def s = g.status()
+        println(  "$d: ${g.describe()}  clean: ${s.clean}" )
+        printAllStatus(d,s)
+        if( s.clean ) clean++ else dirty++
+     }
+      println("clean: $clean dirty: $dirty")
+   }
+}
+
+task appsPull {
+  dependsOn appsInit
+  group = 'build'
+  doLast {
+     dirs.each {
+        def d = "${projectDir}/../${it}"
+        def g = workOn(d)
+        g.pull()
+    }
+  }
+}
+def scanBuilds()
+{
+  def buildTypes = [:]
+
+  dirs.each {
+    def proj = it
+    def d = "${projectDir}/../${it}/.teamcity"
+    fileTree(d) {
+      include '*/buildTypes/*.xml'
+    }.files.each {
+      def buildType = it.name.substring(0, it.name.length() - 4)
+      if(! ( buildType.contains("Rpms") || buildType.contains("Overrides" )|| buildType.contains("Portal") ))
+      buildTypes[proj] = buildType
+    }
+  }
+  return buildTypes
+
+}
+
+task buildTypes(type:WriteProperties) {
+  group='build'
+  outputFile = file("build/buildtypes.txt")
+  outputs.upToDateWhen { false }
+  doFirst {
+    properties scanBuilds()
+    
+  }
+}
+
+ext.artifactVersion="lastSuccessful"
+
+dependencies {
+  //scanBuilds().values.each {
+  ["docstore" : "Docstore_BuildLib"] .each { k,v -> 
+    compile("org:$v:$artifactVersion") {
+      artifact {
+        name = 'publications.versions'
+        type = 'properties'
+      }
+    }
+  }
+}
+
+task downloadArtifacts( type: Copy ) {
+  group "download"
+  outputs.upToDateWhen { false }
+  //from configurations.compile
+  configurations.compile.getResolvedConfiguration().each {
+     it.getFirstLevelModuleDependencies().each {  
+       it.getModuleArtifacts().each {
+       def id = it.getModuleVersion()
+        def build = id.id.name
+        from it.file
+       into "${project.buildDir}/${build}/"
+    rename {
+      println(it)
+      it.replace '-lastSuccessful',''
+     }  
+    println("depends: $it")
+        
+   }
+  }
+   }
+/*
+  configurations.compile.each {
+    println("configuring $it")
+    from file(it) 
+    //from zipTree( file(it ) )
+    into "${ project.projectDir }/repo"
+  }
+*/
+  eachFile {
+    println("downloading $it")
+  }
+}

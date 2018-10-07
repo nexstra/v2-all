@@ -1,0 +1,6 @@
+//includeBuild("../docstore")
+//includeBuild("../maildb")
+//includeBuild("../nconn-v2")
+//includeBuild("../nconnect-clients/ssi")
+//includeBuild("../core-dsl")
+//includeBuild("../portal-sys")

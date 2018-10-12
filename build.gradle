@@ -2,7 +2,7 @@ plugins {
   id "org.ajoberstar.grgit" version "3.0.0-rc.2"
 }
 ext {
-  dirs=["cloudwatch-log4j-appender","core-dsl","content-services","docstore","maildb", "nconn-v2","portal-sys","odd","cds","aws-utils" ,"docker-utils","nconn-legacy"]
+  dirs=["cloudwatch-log4j-appender","core-dsl","content-services","docstore","maildb", "nconn-v2","portal-sys","odd","cds","aws-utils" ,"docker-utils"]//,"nconn-legacy"]
   tcServer = "http://build.nexstra.com:8111"
   download="${tcServer}/guestAuth/repository/download"
 }
@@ -23,6 +23,17 @@ maven { url "${download}/NconnV2_BuildLib/.lastSuccessful/artifacts.zip!"}
     maven { url "${download}/Maildb_BuildLib/.lastSuccessful/artifacts.zip!"}
 */
     jcenter()
+}
+
+build {
+  doLast {
+   dirs.each { 
+    def d=it
+     exec { 
+       commandLine "/bin/sh" , "-c" , "cd ../${d}/; ./gradlew build"
+      }
+  }
+  }
 }
 
 task appRun {
@@ -47,8 +58,10 @@ task publish {
 }
 
 import org.ajoberstar.grgit.Grgit
-def workOn( d ) {
-  return Grgit.open(dir: d ) ?: Grgit.clone( dir:d , url : "git@github.com:nexstra/${d}.git") 
+def workOn( repo ) {
+  def d = "${projectDir}/../${repo}"
+  try { return Grgit.open(dir: d ) } catch( e) { }  
+  return Grgit.clone( dir:d , uri : "git@github.com:nexstra/${repo}.git") 
 }
 def printStatus(s,n){
    println("$n: added: ${s.added.size()} modified: ${s.modified.size()}, removed: ${s.removed.size()}")
@@ -64,11 +77,10 @@ task appsInit {
      def clean =0
      def dirty=0
      dirs.each {
-        def d = "${projectDir}/../${it}"
-        def g = workOn(d)
+        def g = workOn(it)
         def s = g.status()
-        println(  "$d: ${g.describe()}  clean: ${s.clean}" )
-        printAllStatus(d,s)
+        println(  "$it: ${g.describe()}  clean: ${s.clean}" )
+        printAllStatus(it,s)
         if( s.clean ) clean++ else dirty++
      }
       println("clean: $clean dirty: $dirty")
@@ -80,8 +92,7 @@ task appsPull {
   group = 'build'
   doLast {
      dirs.each {
-        def d = "${projectDir}/../${it}"
-        def g = workOn(d)
+        def g = workOn(it)
         g.pull()
     }
   }

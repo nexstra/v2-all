@@ -2,7 +2,6 @@ plugins {
   id "org.ajoberstar.grgit" version "3.0.0-rc.2"
 }
 ext {
-  //dirs=["cloudwatch-log4j-appender","core-dsl","content-services","docstore","maildb", "nconn-v2","portal-sys","odd","cds","aws-utils" ,"docker-utils","nconn-legacy"]
   dirs=["core-dsl","content-services","docstore","maildb", "nconn-v2","portal-sys","odd","cds","aws-utils" ,"docker-utils"]//,"nconn-legacy"]
   tcServer = "http://build.nexstra.com:8111"
   download="${tcServer}/guestAuth/repository/download"
@@ -109,7 +108,7 @@ def scanBuilds()
       include '*/buildTypes/*.xml'
     }.files.each {
       def buildType = it.name.substring(0, it.name.length() - 4)
-      if(! ( buildType.contains("Rpms") || buildType.contains("Overrides" )|| buildType.contains("Portal") ))
+      if(! ( buildType.contains("Rpms") || buildType.contains("Overrides" )|| buildType.contains("Portal")||buildType.contains("ECR") ))
       buildTypes[proj] = buildType
     }
   }
@@ -129,7 +128,8 @@ task buildTypes(type:WriteProperties) {
 }
 
 ext.artifactVersion="lastSuccessful"
-
+println("----")
+println("----")
 dependencies {
   scanBuilds().each { k,v->
    println("build: $v")
@@ -156,10 +156,8 @@ task downloadArtifacts( type: Copy ) {
         from it.file
        into "${project.buildDir}/${build}/"
     rename {
-      println(it)
       it.replace '-lastSuccessful',''
      }  
-    println("depends: $it")
         
    }
   }

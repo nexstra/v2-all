@@ -2,7 +2,8 @@ plugins {
   id "org.ajoberstar.grgit" version "3.0.0-rc.2"
 }
 ext {
-  dirs=["cloudwatch-log4j-appender","core-dsl","content-services","docstore","maildb", "nconn-v2","portal-sys","odd","cds","aws-utils" ,"docker-utils"]//,"nconn-legacy"]
+  //dirs=["cloudwatch-log4j-appender","core-dsl","content-services","docstore","maildb", "nconn-v2","portal-sys","odd","cds","aws-utils" ,"docker-utils","nconn-legacy"]
+  dirs=["core-dsl","content-services","docstore","maildb", "nconn-v2","portal-sys","odd","cds","aws-utils" ,"docker-utils"]//,"nconn-legacy"]
   tcServer = "http://build.nexstra.com:8111"
   download="${tcServer}/guestAuth/repository/download"
 }
@@ -112,6 +113,7 @@ def scanBuilds()
       buildTypes[proj] = buildType
     }
   }
+  println("returning buildTypes: ${buildTypes}")
   return buildTypes
 
 }
@@ -129,8 +131,9 @@ task buildTypes(type:WriteProperties) {
 ext.artifactVersion="lastSuccessful"
 
 dependencies {
-  //scanBuilds().values.each {
-  ["docstore" : "Docstore_BuildLib"] .each { k,v -> 
+  scanBuilds().each { k,v->
+   println("build: $v")
+  //["docstore" : "Docstore_BuildLib"] .each { k,v -> 
     compile("org:$v:$artifactVersion") {
       artifact {
         name = 'publications.versions'
@@ -144,6 +147,7 @@ task downloadArtifacts( type: Copy ) {
   group "download"
   outputs.upToDateWhen { false }
   //from configurations.compile
+  doFirst {
   configurations.compile.getResolvedConfiguration().each {
      it.getFirstLevelModuleDependencies().each {  
        it.getModuleArtifacts().each {
@@ -160,6 +164,7 @@ task downloadArtifacts( type: Copy ) {
    }
   }
    }
+}
 /*
   configurations.compile.each {
     println("configuring $it")

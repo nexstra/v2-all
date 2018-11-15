@@ -64,11 +64,11 @@ def workOn( repo ) {
   return Grgit.clone( dir:d , uri : "git@github.com:nexstra/${repo}.git") 
 }
 def printStatus(s,n){
-   println("$n: added: ${s.added.size()} modified: ${s.modified.size()}, removed: ${s.removed.size()}")
+   println("\t$n: added: ${s.added.size()} modified: ${s.modified.size()}, removed: ${s.removed.size()}")
 }
 def printAllStatus(d,s){
-     println("$d dirty: ${!s.clean}")
-     println("conflicts: ${s.conflicts.size()}") 
+     println("\t$d dirty: ${!s.clean}")
+     println("\tconflicts: ${s.conflicts.size()}") 
      printStatus(s.staged,"staged")
      printStatus(s.unstaged,"unstaged")
 }
@@ -83,7 +83,7 @@ task appsInit {
         printAllStatus(it,s)
         if( s.clean ) clean++ else dirty++
      }
-      println("clean: $clean dirty: $dirty")
+      println("\tclean: $clean dirty: $dirty")
    }
 }
 
@@ -95,6 +95,32 @@ task appsPull {
         def g = workOn(it)
         g.pull()
     }
+  }
+}
+
+task appsCommit {
+  ext.commitComment =  "Update"
+  dependsOn appsInit
+  group = 'build'
+  doLast {
+     dirs.each {
+        def g = workOn(it)
+        g.commit {
+             message  = commitComment 
+      } 
+    }
+  }
+}
+task appsPush {
+  ext.commitComment =  "Update"
+  dependsOn appsInit
+  group = 'build'
+  doLast {
+     dirs.each {
+        def g = workOn(it)
+        g.push()
+       
+     } 
   }
 }
 def scanBuilds()

@@ -87,6 +87,9 @@ task appsInit {
    }
 }
 
+task appsStatus( dependsOn: appsInit ,group: 'build')
+
+
 task appsPull {
   dependsOn appsInit
   group = 'build'
@@ -199,5 +202,14 @@ task downloadArtifacts( type: Copy ) {
 */
   eachFile {
     println("downloading $it")
+  }
+}
+
+task printDirs {
+  group = 'info'
+  doLast {
+  dirs.each { 
+     println( it + "\t" + file("../$it"))
+    }
   }
 }

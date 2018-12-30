@@ -30,7 +30,7 @@ build {
    dirs.each { 
     def d=it
      exec { 
-       commandLine "/bin/sh" , "-c" , "cd ../${d}/; ./gradlew build"
+       commandLine "/bin/sh" , "-c" , "cd ../${d}/; [ -x ./getrepo.sh ] && ./getrepo.sh ; ./gradlew build publish"
       }
   }
   }

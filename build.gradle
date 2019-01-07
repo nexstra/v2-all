@@ -5,6 +5,7 @@ ext {
   dirs=["core-dsl","content-services","docstore","maildb", "nconn-v2","portal-sys","odd","cds","aws-utils" ,"docker-utils"]//,"nconn-legacy"]
   tcServer = "http://build.nexstra.com:8111"
   download="${tcServer}/guestAuth/repository/download"
+  commitAll = project.hasProperty("commitAll")
 }
 apply plugin: 'java'
 
@@ -38,19 +39,19 @@ build {
 
 task appRun {
   gradle.includedBuilds.each {
-    println(it.projectDir)
+    logger.info(it.projectDir)
     if( it.task(":appRun") != null)
       dependsOn it.task(":appRun")
   }}
 task appRunDebug {
   gradle.includedBuilds.each {
-    println(it.projectDir)
+    logger.info(it.projectDir)
     if( it.task(":appRunDebug") != null)
       dependsOn it.task(":appRunDebug")
   }}
 task publish { 
   gradle.includedBuilds.each {
-    println(it.projectDir)
+    logger.info(it.projectDir)
     if( it.task(":publish") != null)
       dependsOn it.task(":publish")
   }
@@ -64,32 +65,51 @@ def workOn( repo ) {
   return Grgit.clone( dir:d , uri : "git@github.com:nexstra/${repo}.git") 
 }
 def printStatus(s,n){
-   println("\t$n: added: ${s.added.size()} modified: ${s.modified.size()}, removed: ${s.removed.size()}")
+   logger.info("\t$n: added: ${s.added.size()} modified: ${s.modified.size()}, removed: ${s.removed.size()}")
 }
 def printAllStatus(d,s){
-     println("\t$d dirty: ${!s.clean}")
-     println("\tconflicts: ${s.conflicts.size()}") 
+     logger.quiet("\t$d dirty: ${!s.clean}")
+     logger.quiet("\tconflicts: ${s.conflicts.size()}") 
      printStatus(s.staged,"staged")
      printStatus(s.unstaged,"unstaged")
 }
-task appsInit {
-  doLast {
+
+def initApps( verbose ) {
      def clean =0
      def dirty=0
      dirs.each {
         def g = workOn(it)
-        def s = g.status()
-        println(  "$it: ${g.describe()}  clean: ${s.clean}" )
-        printAllStatus(it,s)
-        if( s.clean ) clean++ else dirty++
+        if( verbose ) { 
+          def s = g.status()
+           
+          logger.quiet(  "$it: ${g.describe()}  clean: ${s.clean}" )
+          printAllStatus(it,s)
+          if( s.clean ) clean++ else dirty++
+        }
      }
-      println("\tclean: $clean dirty: $dirty")
+    if(verbose)
+      logger.quiet("\tclean: $clean dirty: $dirty")
+ }
+task appsInit {
+  doLast {
+    initApps( false )
    }
 }
 
-task appsStatus( dependsOn: appsInit ,group: 'build')
+task appsStatus( group: 'build'){
+  doLast {
+    initApps( true )
+   }
+}
 
 
+task appsList {
+  group = 'info'
+   doLast { 
+      dirs.each { println(it)  }
+   } 
+}
+  
 task appsPull {
   dependsOn appsInit
   group = 'build'
@@ -109,6 +129,7 @@ task appsCommit {
      dirs.each {
         def g = workOn(it)
         g.commit {
+             all =  project.commitAll 
              message  = commitComment 
       } 
     }
@@ -141,7 +162,7 @@ def scanBuilds()
       buildTypes[proj] = buildType
     }
   }
-  println("returning buildTypes: ${buildTypes}")
+  logger.info("returning buildTypes: ${buildTypes}")
   return buildTypes
 
 }
@@ -157,11 +178,11 @@ task buildTypes(type:WriteProperties) {
 }
 
 ext.artifactVersion="lastSuccessful"
-println("----")
-println("----")
+logger.info("----")
+logger.info("----")
 dependencies {
   scanBuilds().each { k,v->
-   println("build: $v")
+   logger.info("build: $v")
   //["docstore" : "Docstore_BuildLib"] .each { k,v -> 
     compile("org:$v:$artifactVersion") {
       artifact {
@@ -194,14 +215,14 @@ task downloadArtifacts( type: Copy ) {
 }
 /*
   configurations.compile.each {
-    println("configuring $it")
+    logger.info("configuring $it")
     from file(it) 
     //from zipTree( file(it ) )
     into "${ project.projectDir }/repo"
   }
 */
   eachFile {
-    println("downloading $it")
+    logger.info("downloading $it")
   }
 }
 

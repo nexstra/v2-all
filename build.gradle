@@ -9,7 +9,6 @@ ext {
 }
 apply plugin: 'java'
 
-//artifacts/docstore-lib/build/libs/docstore-lib-1.4.44
 repositories {
   ivy {
     ivyPattern      "${download}/[module]/[revision]/teamcity-ivy.xml"

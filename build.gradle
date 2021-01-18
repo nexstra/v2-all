@@ -2,7 +2,7 @@ plugins {
   id "org.ajoberstar.grgit" version "3.0.0-rc.2"
 }
 ext {
-  dirs=["core-dsl","content-services","docstore","maildb", "nconn-v2","portal-sys","odd","cds","aws-utils" ,"docker-utils"]//,"nconn-legacy"]
+  dirs=["core-dsl","content-services","docstore","maildb", "nconn-v2","portal-ansys","aws-utils" ,"docker-utils"]//,"nconn-legacy"]
   tcServer = "http://build.nexstra.com:8111"
   download="${tcServer}/guestAuth/repository/download"
   commitAll = project.hasProperty("commitAll")
